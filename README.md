@@ -78,21 +78,21 @@ a1.sinks.k1.hdfs.minBlockReplicas = 1
 
 # Use a channel which buffers events in memory
 a1.channels.c1.type = memory
-# 一般设置为2 * 1024 * 1024 * 100 = 209715200
+#一般设置为2 * 1024 * 1024 * 100 = 209715200
 a1.channels.c1.capacity = 5120000
-# 单个进程的最大处理能力
+#单个进程的最大处理能力
 a1.channels.c1.transactionCapacity = 512000
 a1.channels.c1.keep-alive=60
 a1.channels.c1.byteCapacityBufferPercentage=10
 
-# Bind the source and sink to the channel
+#Bind the source and sink to the channel
 a1.sources.r1.channels = c1
 a1.sinks.k1.channel = c1
-2.2关联hdfs
+## 2.2关联hdfs
 将core-site.xml和hdfs-site.xml文件软连接到flume的conf文件夹中
 $ ln -s /opt/modules/cdh/hadoop-2.5.0-cdh5.3.6/etc/hadoop/hdfs-site.xml conf/
 $ ln -s /opt/modules/cdh/hadoop-2.5.0-cdh5.3.6/etc/hadoop/core-site.xml conf/
-2.3启动采集测试
+## 2.3启动采集测试
 $ bin/flume-ng agent
 --conf conf/
 --conf-file conf/workspace/flume-load-log-2-hdfs.conf

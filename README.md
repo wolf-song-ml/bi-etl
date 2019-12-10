@@ -1,13 +1,13 @@
 大数据离线项目之：BI上报
 ==========
 #### 需要知识点：
-    整个hadoop技术栈，所有代码均为java
-    Hdfs:文件创建、存储、管理
-    Mapreduce:map split机制、shuffle机制、reduce机制、小文件合并机制、自定义输入输出机制、reduce并发输出到mysql
-    Habse：列族设计机制、hbase与hive关联
-    Hive：行转列、列转行、存储文件机制（重点rcfile、parquet）、分区、分桶、hive与MR调用以及优化、开发UDF
-    Flume：数据采集工具
-    Sqoop：hdfs、关系数据库、hive之间传输工具
+* 整个hadoop技术栈，所有代码均为java
+* Hdfs:文件创建、存储、管理
+* Mapreduce:map split机制、shuffle机制、reduce机制、小文件合并机制、自定义输入输出机制、reduce并发输出到mysql
+* Habse：列族设计机制、hbase与hive关联
+* Hive：行转列、列转行、存储文件机制（重点rcfile、parquet）、分区、分桶、hive与MR调用以及优化、开发UDF
+* Flume：数据采集工具
+* Sqoop：hdfs、关系数据库、hive之间传输工具
 
 # 1数据说明
 ## 1.1登录事件
@@ -150,16 +150,17 @@
     AnalysisDataMapper.java
     AnalysisDataRunner.java
     目标：读取HDFS中的数据，清洗后写入到HBase中
+    
     核心思路梳理：
-      Step1、创建AnalysisDataMapper类，复写map方法
-      Step2、在map方法中通过LoggerUtil.handleLogText方法将当前行数据解析成Map<String,String>集合clientInfo
-      Step3、获取当前行日志信息的事件类型，并根据获取到的事件类型去枚举类型中匹配生成EventEnum对象，如果没有匹配到对应的事件类型，则返回null。
-      Step4、判断如果无法处理给定的事件类型，则使用log4j输出。
-      Step5、如果可以处理指定事件类型，则开始处理事件，创建handleEventData (Map<String, String> clientInfo, EventEnum event, Context context, Text value)方法处理事件。
-      tep6、在handleEventData方法中，我们需要过滤掉那些数据不合法的Event事件，通过filterEventData(Map<String, String> clientInfo, EventEnum event) 方法过滤，规律规则：如果是java_server过来的数据，则会员id必须存在，如果是website过来的数据，则会话id和用户id必须存在。
-      Step7、如果没有通过过滤，则通过日志输出当前数据，如果通过过滤，则开始准备输出数据，创建方法outPutData (Map<String, String> clientInfo, Context context)
-      Step8、outputData方法中，我们可以删除一些无用的数据，比如浏览器信息的原始数据（因为已经解析过了）。同时需要创建一个生成rowkey的方法generateRowKey(String uuid, long serverTime, Map<String, String> clientInfo)，通过该方法生成的rowkey之后，添加内容到HBase表中。
-      Step9、generateRowKey方法主要用于rowKey的生成，通过拼接：时间+uuid的crc32编码+数据内容的hash码的crc32编码+作为rowkey，一共12个字节。
+    Step1、创建AnalysisDataMapper类，复写map方法
+    Step2、在map方法中通过LoggerUtil.handleLogText方法将当前行数据解析成Map<String,String>集合clientInfo
+    Step3、获取当前行日志信息的事件类型，并根据获取到的事件类型去枚举类型中匹配生成EventEnum对象，如果没有匹配到对应的事件类型，则返回null。
+    Step4、判断如果无法处理给定的事件类型，则使用log4j输出。
+    Step5、如果可以处理指定事件类型，则开始处理事件，创建handleEventData (Map<String, String> clientInfo, EventEnum event, Context context, Text value)方法处理事件。
+    Step6、在handleEventData方法中，我们需要过滤掉那些数据不合法的Event事件，通过filterEventData(Map<String, String> clientInfo, EventEnum event) 方法过滤，规律规则：如果是java_server过来的数据，则会员id必须存在，如果是website过来的数据，则会话id和用户id必须存在。
+    Step7、如果没有通过过滤，则通过日志输出当前数据，如果通过过滤，则开始准备输出数据，创建方法outPutData (Map<String, String> clientInfo, Context context)
+    Step8、outputData方法中，我们可以删除一些无用的数据，比如浏览器信息的原始数据（因为已经解析过了）。同时需要创建一个生成rowkey的方法generateRowKey(String uuid, long serverTime, Map<String, String> clientInfo)，通过该方法生成的rowkey之后，添加内容到HBase表中。
+    Step9、generateRowKey方法主要用于rowKey的生成，通过拼接：时间+uuid的crc32编码+数据内容的hash码的crc32编码+作为rowkey，一共12个字节。
 ## 3.4、测试
 ### 13.4.1上传测试数据
     $ /opt/modules/cdh/hadoop-2.5.0-cdh5.3.6/bin/hdfs dfs -mkdir -p /event-logs/2015/12/20
@@ -182,12 +183,12 @@
     按照不同维度统计新增用户。
 ## 4.3代码实现
 ### 4.3.1 Mapper
-      Step1、创建NewInstallUsersMapper类，OutPutKey为StatsUserDimension，OutPutValue为Text。定义全局变量，Key和Value的对象
-      Step2、覆写map方法，在该方法中读取HBase中待处理的数据，分别要包含维度的字段信息以及必有的字段信息。serverTime、platformName、platformVersion、browserName、browserVersion、uuid
-      Step3、数据过滤以及时间字符串转换
-      Step4、构建维度信息：天维度，周维度，月维度，platform维度[(name,version)(name,all)(all,all)]，browser维度[(browser,all) (browser,version)]
-      Step5、设置outputValue的值为uuid
-      Step6、按照不同维度设置outputKey
+    Step1、创建NewInstallUsersMapper类，OutPutKey为StatsUserDimension，OutPutValue为Text。定义全局变量，Key和Value的对象
+    Step2、覆写map方法，在该方法中读取HBase中待处理的数据，分别要包含维度的字段信息以及必有的字段信息。serverTime、platformName、platformVersion、browserName、browserVersion、uuid
+    Step3、数据过滤以及时间字符串转换
+    Step4、构建维度信息：天维度，周维度，月维度，platform维度[(name,version)(name,all)(all,all)]，browser维度[(browser,all) (browser,version)]
+    Step5、设置outputValue的值为uuid
+    Step6、按照不同维度设置outputKey
 ### 4.3.2 Reducer
     Step1、创建NewInstallUserReducer<StatsUserDimension, Text, StatsUserDimension, MapWritableValue>类，覆写reduce方法。
     Step2、统计uuid出现的次数，并且去重。
@@ -200,11 +201,11 @@
     Step4、设置HBase InputFormat（设置从HBase中读取的数据都有哪些）
     Step5、自定义OutPutFormat并设置之
 ### 4.3.4测试：NewInstallUsers
-     Maven打包参数：-P dev clean package install
-     Hadoop环境依赖导入：
-     export HADOOP_CLASSPATH=$HADOOP_CLASSPATH:/opt/modules/cdh/hbase-0.98.6-cdh5.3.6/lib/*
-     提交运行：
-     /opt/modules/cdh/hadoop-2.5.0-cdh5.3.6/bin/yarn jar ~/Desktop/BI-ETL.jar com.z.etl.mr.statistics.NewInstallUserRunner -date 2015-12-20
+    Maven打包参数：-P dev clean package install
+    Hadoop环境依赖导入：
+    export HADOOP_CLASSPATH=$HADOOP_CLASSPATH:/opt/modules/cdh/hbase-0.98.6-cdh5.3.6/lib/*
+    提交运行：
+    /opt/modules/cdh/hadoop-2.5.0-cdh5.3.6/bin/yarn jar BI-ETL.jar com.z.etl.mr.statistics.NewInstallUserRunner -date 2015-12-20
 
 # 5 Hive维度分析
 ## 5.1目标
@@ -241,15 +242,17 @@
     create table stats_hourly_tmp2(pl string, ver string, date string,hour int, kpi string, value int) row format delimited fields  terminated by '\t';;
 ### 5.4.5分析活跃访客数
     Step1、具体平台，具体平台版本（platform:name, version:version）
-    from stats_hourly_tmp1
+     from stats_hourly_tmp1
      insert overwrite table stats_hourly_tmp2
      select pl,ver,date,hour,'active_users',count(distinct u_ud) as active_users 
      where en = 'e_pv' group by pl,ver,date,hour;
+     
     Step2、具体平台，所有版本（platform:name, version:all）
      from stats_hourly_tmp1
      insert into table stats_hourly_tmp2
      select pl,'all',date,hour,'active_users',count(distinct u_ud) as active_users 
      where en = 'e_pv' group by pl,date,hour;
+     
     Step3、所有平台，所有版本（platform:all, version:all）
      from stats_hourly_tmp1
      insert into table stats_hourly_tmp2
@@ -258,30 +261,30 @@
 ### 5.4.6分析会话长度
     将每个会话的长度先要计算出来，然后统计一个时间段的各个会话的总和
     Step1、具体平台，具体平台版本（platform:name, version:version）
-        from (
-        select pl,ver,date,hour,u_sd,(max(s_time) - min(s_time)) as s_length
-            from stats_hourly_tmp1 
-            where en='e_pv' group by pl,ver,date,u_sd,hour) as tmp
-        insert into table stats_hourly_tmp2
-        select pl,ver,date,hour,'sessions_lengths',cast(sum(s_length) / 1000 as int) 
-        group by pl,ver,date,hour;
+    from (
+    select pl,ver,date,hour,u_sd,(max(s_time) - min(s_time)) as s_length
+        from stats_hourly_tmp1 
+        where en='e_pv' group by pl,ver,date,u_sd,hour) as tmp
+    insert into table stats_hourly_tmp2
+    select pl,ver,date,hour,'sessions_lengths',cast(sum(s_length) / 1000 as int) 
+    group by pl,ver,date,hour;
 
     Step2、具体平台，所有版本（platform:name, version:all）
-        from (
-        select pl,date,hour,u_sd,(max(s_time) - min(s_time)) as s_length
-        from stats_hourly_tmp1 
-        where en='e_pv' group by pl,date,u_sd,hour) as tmp
-        insert into table stats_hourly_tmp2
-        select pl,'all',date,hour,'sessions_lengths',cast(sum(s_length) / 1000 as int) 
-        group by pl,date,hour;
+    from (
+    select pl,date,hour,u_sd,(max(s_time) - min(s_time)) as s_length
+    from stats_hourly_tmp1 
+    where en='e_pv' group by pl,date,u_sd,hour) as tmp
+    insert into table stats_hourly_tmp2
+    select pl,'all',date,hour,'sessions_lengths',cast(sum(s_length) / 1000 as int) 
+    group by pl,date,hour;
 
     Step3、所有平台，所有版本（platform:all, version:all）
-        from (
-        select date,hour,u_sd,(max(s_time) - min(s_time)) as s_length from stats_hourly_tmp1 
-        where en='e_pv'  group by date,u_sd,hour) as tmp
-        insert into table stats_hourly_tmp2
-        select 'all','all',date,hour,'sessions_lengths',cast(sum(s_length) / 1000 as int) 
-        group by date,hour;
+    from (
+    select date,hour,u_sd,(max(s_time) - min(s_time)) as s_length from stats_hourly_tmp1 
+    where en='e_pv'  group by date,u_sd,hour) as tmp
+    insert into table stats_hourly_tmp2
+    select 'all','all',date,hour,'sessions_lengths',cast(sum(s_length) / 1000 as int) 
+    group by date,hour;
 ### 5.4.7、创建最终结果表
     我们在这里需要创建一个和Mysql表结构一致的Hive表，便于后期使用Sqoop导出数据到Mysql中。
     create table stats_hourly(
@@ -317,6 +320,7 @@
 ### 5.4.8向结果表中插入数据
     我们需要platform_dimension_id int, date_dimension_id int, kpi_dimension_id int三个字段，所以我们需要使用UDF函数生成对应的字段。
     Step1、编写UDF函数，见代码
+    
     Step2、编译打包UDF函数代码
     编译参数：-P dev clean package install
     导入HBase依赖：

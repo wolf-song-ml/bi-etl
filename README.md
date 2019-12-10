@@ -162,7 +162,7 @@
     Step8、outputData方法中，我们可以删除一些无用的数据，比如浏览器信息的原始数据（因为已经解析过了）。同时需要创建一个生成rowkey的方法generateRowKey(String uuid, long serverTime, Map<String, String> clientInfo)，通过该方法生成的rowkey之后，添加内容到HBase表中。
     Step9、generateRowKey方法主要用于rowKey的生成，通过拼接：时间+uuid的crc32编码+数据内容的hash码的crc32编码+作为rowkey，一共12个字节。
 ## 3.4、测试
-### 13.4.1上传测试数据
+### 3.4.1上传测试数据
     $ /opt/modules/cdh/hadoop-2.5.0-cdh5.3.6/bin/hdfs dfs -mkdir -p /event-logs/2015/12/20
     $ /opt/modules/cdh/hadoop-2.5.0-cdh5.3.6/bin/hdfs dfs -put ~/Desktop/20151220.log /event-logs/2015/12/20
 

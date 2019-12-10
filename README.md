@@ -41,17 +41,17 @@ du	事件持续时间，可以为空
 kv_	事件自定义属性键值对。比如kv_keyname=value，这里的keyname和value就是用户自定义，支持在事件上定义多个属性键值对
 # 2数据采集
 ## 2.1编写Flume脚本上传日志文件到HDFS
-# Name the components on this agent
+#Name the components on this agent
 a1.sources = r1
 a1.sinks = k1
 a1.channels = c1
 
-# Describe/configure the source
+#Describe/configure the source
 a1.sources.r1.type = exec
 a1.sources.r1.command = tail -F /usr/local/nginx/user_logs/access.log
 a1.sources.r1.shell = /bin/bash -c
 
-# Describe the sink
+#Describe the sink
 a1.sinks.k1.type = hdfs
 a1.sinks.k1.hdfs.path = hdfs://192.168.0.244:9000/event-logs/%Y/%m/%d
 a1.sinks.k1.hdfs.filePrefix=FlumeData
@@ -236,18 +236,17 @@ export HADOOP_CLASSPATH=$HADOOP_CLASSPATH:/opt/modules/cdh/hbase-0.98.6-cdh5.3.6
 提交运行：
 /opt/modules/cdh/hadoop-2.5.0-cdh5.3.6/bin/yarn jar ~/Desktop/BI-ETL.jar com.z.etl.mr.statistics.NewInstallUserRunner -date 2015-12-20
 
-
-5 Hive维度分析
-5.1目标
+# 5 Hive维度分析
+## 5.1目标
 分析一天24个时间段的新增用户、活跃用户、会话个数和会话长度四个指标，最终将结果保存到HDFS中，使用sqoop导出到Mysql。
-5.2目标解析
+## 5.2目标解析
 新增用户：分析登录事件中各个不同时间段的uuid数量
 活跃用户：分析访问事件中各个不同时间段的uuid数量
 会话个数：分析访问事件中各个不同时间段的会话id数量
 会话长度：分析访问事件中各个不同时间段内所有会话时长的总和
-5.3创建Mysql结果表
-5.4 Hive分析
-5.4.1创建Hive外部表关联HBase数据表
+## 5.3创建Mysql结果表
+## 5.4 Hive分析
+### 5.4.1创建Hive外部表关联HBase数据表
 create external table 
 event_logs20151220(
 key string,
@@ -260,9 +259,9 @@ s_time bigint)
 stored by 'org.apache.hadoop.hive.hbase.HBaseStorageHandler' 
 with serdeproperties("hbase.columns.mapping" = ":key, info:pl,info:ver,info:en,info:u_ud,info:u_sd,info:s_time") 
 tblproperties("hbase.table.name" = "event-logs20151220");
-5.4.2创建临时表用于存放访问和登录事件的数据（即存放过滤数据）
+### 5.4.2创建临时表用于存放访问和登录事件的数据（即存放过滤数据）
 create table stats_hourly_tmp1(pl string, ver string, en string, s_time bigint, u_ud string, u_sd string, hour int, date string) row format delimited fields terminated by '\t';;
-5.4.3提取e_pv和e_l事件数据到临时表中
+### 5.4.3提取e_pv和e_l事件数据到临时表中
 from event_logs20151220
 insert overwrite table stats_hourly_tmp1
 select 
@@ -274,10 +273,10 @@ u_sd,
 hour(from_unixtime(cast(s_time/1000 as int), 'yyyy-MM-dd HH:mm:ss')), 
 from_unixtime(cast(s_time/1000 as int), 'yyyy-MM-dd') 
 where en = 'e_pv' or en = 'e_l';
-5.4.4创建分析结果临时保存表
+### 5.4.4创建分析结果临时保存表
 create table stats_hourly_tmp2(pl string, ver string, date string,hour int, kpi string, value int) row format delimited fields terminated by '\t';;
-5.4.5分析活跃访客数
-Step1、具体平台，具体平台版本（platform:name, version:version）
+### 5.4.5分析活跃访客数
+* Step1、具体平台，具体平台版本（platform:name, version:version）
 from stats_hourly_tmp1
 insert overwrite table stats_hourly_tmp2
 select 
@@ -294,7 +293,7 @@ pl,
 ver,
 date,
 hour;
-Step2、具体平台，所有版本（platform:name, version:all）
+* Step2、具体平台，所有版本（platform:name, version:all）
 from stats_hourly_tmp1
 insert into table stats_hourly_tmp2
 select 
@@ -309,7 +308,7 @@ group by
 pl,
 date,
 hour;
-Step3、所有平台，所有版本（platform:all, version:all）
+* Step3、所有平台，所有版本（platform:all, version:all）
 from stats_hourly_tmp1
 insert into table stats_hourly_tmp2
 select 
@@ -323,9 +322,9 @@ where en = 'e_pv'
 group by 
 date,
 hour;
-5.4.6分析会话长度
+### 5.4.6分析会话长度
 将每个会话的长度先要计算出来，然后统计一个时间段的各个会话的总和
-Step1、具体平台，具体平台版本（platform:name, version:version）
+* Step1、具体平台，具体平台版本（platform:name, version:version）
 from (
 select 
 pl,ver,
@@ -356,7 +355,7 @@ ver,
 date,
 hour;
 
-Step2、具体平台，所有版本（platform:name, version:all）
+* Step2、具体平台，所有版本（platform:name, version:all）
 from (
 select 
 pl,
@@ -386,7 +385,7 @@ pl,
 date,
 hour;
 
-Step3、所有平台，所有版本（platform:all, version:all）
+* Step3、所有平台，所有版本（platform:all, version:all）
 from (
 select 
 date,
@@ -412,7 +411,7 @@ cast(sum(s_length) / 1000 as int)
 group by 
 date,
 hour;
-5.4.7、创建最终结果表
+### 5.4.7、创建最终结果表
 我们在这里需要创建一个和Mysql表结构一致的Hive表，便于后期使用Sqoop导出数据到Mysql中。
 create table stats_hourly(
 platform_dimension_id int,
@@ -444,16 +443,15 @@ hour_22 int,
 hour_23 int
 ) row format delimited fields terminated by '\t';
 
-5.4.8向结果表中插入数据
+### 5.4.8向结果表中插入数据
 我们需要platform_dimension_id int, date_dimension_id int, kpi_dimension_id int三个字段，所以我们需要使用UDF函数生成对应的字段。
-Step1、编写UDF函数，见代码
-Step2、编译打包UDF函数代码
+* Step1、编写UDF函数，见代码
+* Step2、编译打包UDF函数代码
 编译参数：-P dev clean package install
 导入HBase依赖：
 export HADOOP_CLASSPATH=$HADOOP_CLASSPATH:/opt/modules/cdh/hbase-0.98.6-cdh5.3.6/lib/*
 
-
-Step3、上传UDF代码jar包到HDFS
+* Step3、上传UDF代码jar包到HDFS
 $ bin/hadoop fs -mkdir -p /event_logs/
 $ bin/hadoop fs -mv /event-logs/* /event_logs/
 尖叫提示：记得修改Flume的HDFS SINK路径以及手动上传脚本命令
@@ -462,13 +460,13 @@ $ bin/hadoop fs -rm -r /event-logs/
 $ bin/hadoop fs -mkdir -p /udf_jar/transformer 
 $ bin/hadoop fs -put ~/Desktop/BI-ETL.jar  /udf_jar/transformer
 
-Step4、使用UDF的jar
+* Step4、使用UDF的jar
 create function date_converter as 'com.z.etl.udf.DateDimensionConverterUDF' using jar 'hdfs://node1:9000/udf_jar/BI-ETL.jar ';
 
 create function kpi_converter as 'com.z.etl.udf.KpiDimensionConverterUDF' using jar 'hdfs://node1:9000/udf_jar/BI-ETL.jar ';
 
 create function platform_converter as 'com.z.etl.udf.PlatformDimensionConverterUDF' using jar 'hdfs://node1:9000/udf_jar/BI-ETL.jar ';
-Step5、执行最终数据统计
+* Step5、执行最终数据统计
 insert overwrite table stats_hourly
 select 
 event_log.platform_converter(pl,ver), 
@@ -499,7 +497,7 @@ max(case when hour=21 then value else 0 end) as hour_21,
 max(case when hour=22 then value else 0 end) as hour_22,
 max(case when hour=23 then value else 0 end) as hour_23
 from stats_hourly_tmp2 group by pl,ver,date,kpi;
-6 Sqoop导出数据到Mysql
+# 6 Sqoop导出数据到Mysql
 $ bin/sqoop export --connect jdbc:mysql://node2:3306/report 
 --username root 
 --password 123456 
